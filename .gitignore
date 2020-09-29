@@ -17,4 +17,4 @@ deobfuscator.iml
 *.ser
 *.DS_Store
 *.yaml
-dependency-reduced-pom.xml
+deobfuscator.jar

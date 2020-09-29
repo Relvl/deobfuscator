@@ -20,6 +20,7 @@ import com.javadeobfuscator.deobfuscator.transformers.general.removers.IllegalSi
 import com.javadeobfuscator.deobfuscator.transformers.general.removers.IllegalVarargsRemover;
 import com.javadeobfuscator.deobfuscator.transformers.general.removers.LineNumberRemover;
 import com.javadeobfuscator.deobfuscator.transformers.general.removers.SyntheticBridgeRemover;
+import com.javadeobfuscator.deobfuscator.transformers.normalizer.AdvancedClassNormalizer;
 import com.javadeobfuscator.deobfuscator.transformers.normalizer.ClassNormalizer;
 import com.javadeobfuscator.deobfuscator.transformers.normalizer.SourceFileClassNormalizer;
 
@@ -31,7 +32,7 @@ public class Transformers {
         public static final Class<? extends Transformer> HIDEACCESS_OBFUSCATION = com.javadeobfuscator.deobfuscator.transformers.stringer.HideAccessObfuscationTransformer.class;
         public static final Class<? extends Transformer> RESOURCE_ENCRYPTION = com.javadeobfuscator.deobfuscator.transformers.stringer.ResourceEncryptionTransformer.class;
     }
-    
+
     public static class General {
         public static final Class<? extends Transformer> PEEPHOLE_OPTIMIZER = com.javadeobfuscator.deobfuscator.transformers.general.peephole.PeepholeOptimizer.class;
 
@@ -42,13 +43,13 @@ public class Transformers {
             public static final Class<? extends Transformer> SYNTHETIC_BRIDGE = SyntheticBridgeRemover.class;
         }
     }
-    
+
     public static class Smoke {
-    	public static final Class<? extends Transformer> STRING_ENCRYPTION = com.javadeobfuscator.deobfuscator.transformers.smoke.StringEncryptionTransformer.class;
+        public static final Class<? extends Transformer> STRING_ENCRYPTION = com.javadeobfuscator.deobfuscator.transformers.smoke.StringEncryptionTransformer.class;
         public static final Class<? extends Transformer> NUMBER_OBFUSCATION = com.javadeobfuscator.deobfuscator.transformers.smoke.NumberObfuscationTransformer.class;
         public static final Class<? extends Transformer> ILLEGAL_VARIABLE = com.javadeobfuscator.deobfuscator.transformers.smoke.IllegalVariableTransformer.class;
     }
-    
+
     public static class Zelix {
         public static final Class<? extends Transformer> STRING_ENCRYPTION_SIMPLE = com.javadeobfuscator.deobfuscator.transformers.zelix.string.SimpleStringEncryptionTransformer.class;
         public static final Class<? extends Transformer> STRING_ENCRYPTION_ENHANCED = com.javadeobfuscator.deobfuscator.transformers.zelix.string.EnhancedStringEncryptionTransformer.class;
@@ -63,7 +64,9 @@ public class Transformers {
 
     public static class Normalizer {
         public static final Class<? extends Transformer> PACKAGE_NORMALIZER = com.javadeobfuscator.deobfuscator.transformers.normalizer.PackageNormalizer.class;
+        public static final Class<? extends Transformer> ADVANCED_PACKAGE_NORMALIZER = com.javadeobfuscator.deobfuscator.transformers.normalizer.AdvancedPackageNormalizer.class;
         public static final Class<? extends Transformer> CLASS_NORMALIZER = ClassNormalizer.class;
+        public static final Class<? extends Transformer> ADVANCED_CLASS_NORMALIZER = AdvancedClassNormalizer.class;
         public static final Class<? extends Transformer> FIELD_NORMALIZER = com.javadeobfuscator.deobfuscator.transformers.normalizer.FieldNormalizer.class;
         public static final Class<? extends Transformer> METHOD_NORMALIZER = com.javadeobfuscator.deobfuscator.transformers.normalizer.MethodNormalizer.class;
         public static final Class<? extends Transformer> SOURCEFILE_CLASS_NORMALIZER = SourceFileClassNormalizer.class;
