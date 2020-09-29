@@ -13,67 +13,83 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.javadeobfuscator.deobfuscator.transformers.normalizer
 
-package com.javadeobfuscator.deobfuscator.transformers.normalizer;
+import com.fasterxml.jackson.annotation.JsonProperty
+import com.javadeobfuscator.deobfuscator.config.TransformerConfig
+import com.javadeobfuscator.deobfuscator.config.TransformerConfig.ConfigOptions
+import com.javadeobfuscator.deobfuscator.transformers.Transformer
+import com.javadeobfuscator.deobfuscator.utils.ClassTree
+import org.objectweb.asm.Opcodes
+import org.objectweb.asm.commons.ClassRemapper
+import org.objectweb.asm.tree.ClassNode
+import java.io.File
+import java.util.*
+import java.util.function.Consumer
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.javadeobfuscator.deobfuscator.config.TransformerConfig;
-import org.objectweb.asm.commons.ClassRemapper;
-import org.objectweb.asm.tree.ClassNode;
-import com.javadeobfuscator.deobfuscator.transformers.Transformer;
+@ConfigOptions(configClass = AbstractNormalizer.Config::class)
+abstract class AbstractNormalizer<T : AbstractNormalizer.Config?> : Transformer<T>() {
 
-import java.io.File;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+    @Throws(Throwable::class)
+    override fun transform(): Boolean {
+        val remapper = CustomRemapper()
 
-@TransformerConfig.ConfigOptions(configClass = AbstractNormalizer.Config.class)
-public abstract class AbstractNormalizer<T extends AbstractNormalizer.Config> extends Transformer<T> {
-    @Override
-    public final boolean transform() throws Throwable {
-        CustomRemapper remapper = new CustomRemapper();
+        remap(remapper)
 
-        remap(remapper);
+        logger.info("finalyze processing...")
 
-        Map<String, ClassNode> updated = new HashMap<>();
-        Set<String> removed = new HashSet<>();
-
-        classNodes().forEach(wr -> {
-            removed.add(wr.name);
-
-            ClassNode newNode = new ClassNode();
-            ClassRemapper classRemapper = new ClassRemapper(newNode, remapper);
-            wr.accept(classRemapper);
-            updated.put(newNode.name, newNode);
-
-            getDeobfuscator().setConstantPool(newNode, getDeobfuscator().getConstantPool(wr));
-        });
-
-        removed.forEach(classes::remove);
-        removed.forEach(classpath::remove);
-        classes.putAll(updated);
-        classpath.putAll(updated);
-        getDeobfuscator().resetHierachy();
-        return true;
+        val updated: MutableMap<String, ClassNode> = HashMap()
+        val removed: MutableSet<String> = HashSet()
+        classNodes().forEach(Consumer { wr: ClassNode ->
+            removed.add(wr.name)
+            val newNode = ClassNode()
+            val classRemapper = ClassRemapper(newNode, remapper)
+            wr.accept(classRemapper)
+            updated[newNode.name] = newNode
+            deobfuscator.setConstantPool(newNode, deobfuscator.getConstantPool(wr))
+        })
+        removed.forEach(Consumer { key: String? -> classes.remove(key) })
+        removed.forEach(Consumer { key: String? -> classpath.remove(key) })
+        classes.putAll(updated)
+        classpath.putAll(updated)
+        deobfuscator.resetHierachy()
+        return true
     }
 
-    public abstract void remap(CustomRemapper remapper);
+    abstract fun remap(remapper: CustomRemapper)
 
-    public static abstract class Config extends TransformerConfig {
+    /** We must load the entire class tree so subclasses are correctly counted */
+    protected fun loadClassHierarchy() {
+        classNodes().forEach { classNode: ClassNode ->
+            fillClassHierarchy(deobfuscator.getClassTree(classNode.name).parentClasses, HashSet()) { ct, _, tts ->
+                tts.addAll(ct.parentClasses)
+                tts.addAll(ct.subClasses)
+            }
+        }
+    }
+
+    protected fun fillClassHierarchy(initial: Collection<String>, tried: MutableSet<String>, func: (ct: ClassTree, polled: String, tts: LinkedList<String>) -> Unit): LinkedList<String> {
+        val toTrySelf = LinkedList<String>(initial)
+        while (toTrySelf.isNotEmpty()) {
+            val polled = toTrySelf.poll()
+            if (tried.add(polled) && polled != "java/lang/Object") {
+                val ct = deobfuscator.getClassTree(polled)
+                func(ct, polled, toTrySelf)
+            }
+        }
+        return toTrySelf
+    }
+
+    protected fun isEnumClass(classNode: ClassNode) = classNode.superName == "java/lang/Enum"
+    protected fun isInterface(classNode: ClassNode) = classNode.access and Opcodes.ACC_INTERFACE != 0
+    protected fun isAbstractClass(classNode: ClassNode) = classNode.access and Opcodes.ACC_ABSTRACT != 0
+    protected fun isSyntheticClass(classNode: ClassNode) = classNode.access and Opcodes.ACC_SYNTHETIC != 0
+
+    abstract class Config(implementation: Class<out Transformer<*>?>?) : TransformerConfig(implementation) {
         @JsonProperty(value = "mapping-file")
-        private File mappingFile;
+        var mappingFile: File? = null
 
-        public Config(Class<? extends Transformer> implementation) {
-            super(implementation);
-        }
-
-        public File getMappingFile() {
-            return mappingFile;
-        }
-
-        public void setMappingFile(File mappingFile) {
-            this.mappingFile = mappingFile;
-        }
+        @JsonProperty("package-restrict")
+        var packageRestrict: List<String> = emptyList()
     }
 }

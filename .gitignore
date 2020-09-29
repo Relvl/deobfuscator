@@ -1,4 +1,5 @@
 /target
+/build
 /bin
 /src/debug/
 /src/test/resources/Krakatau
@@ -9,6 +10,7 @@
 /issues/
 .classpath
 .project
+.gradle
 deobfuscator.iml
 /.settings
 /.idea

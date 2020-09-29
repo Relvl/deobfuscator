@@ -64,7 +64,6 @@ public class Transformers {
 
     public static class Normalizer {
         public static final Class<? extends Transformer> PACKAGE_NORMALIZER = com.javadeobfuscator.deobfuscator.transformers.normalizer.PackageNormalizer.class;
-        public static final Class<? extends Transformer> ADVANCED_PACKAGE_NORMALIZER = com.javadeobfuscator.deobfuscator.transformers.normalizer.AdvancedPackageNormalizer.class;
         public static final Class<? extends Transformer> CLASS_NORMALIZER = ClassNormalizer.class;
         public static final Class<? extends Transformer> ADVANCED_CLASS_NORMALIZER = AdvancedClassNormalizer.class;
         public static final Class<? extends Transformer> FIELD_NORMALIZER = com.javadeobfuscator.deobfuscator.transformers.normalizer.FieldNormalizer.class;
