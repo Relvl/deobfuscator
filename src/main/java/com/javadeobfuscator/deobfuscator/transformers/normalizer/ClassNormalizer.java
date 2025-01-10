@@ -18,27 +18,33 @@ package com.javadeobfuscator.deobfuscator.transformers.normalizer;
 
 import com.javadeobfuscator.deobfuscator.config.TransformerConfig;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @TransformerConfig.ConfigOptions(configClass = ClassNormalizer.Config.class)
 public class ClassNormalizer extends AbstractNormalizer<ClassNormalizer.Config> {
     @Override
     public void remap(CustomRemapper remapper) {
-        AtomicInteger id = new AtomicInteger(0);
         classNodes().forEach(classNode -> {
-        	
-        	String newName = "Class";
-        	
-        	if(classNode.name.contains("/")){
-            String packageName = classNode.name.substring(0, classNode.name.lastIndexOf('/'));
-            newName = packageName + "/" + "Class";
-        	}
+            String newName;
 
-            String mappedName;
-            
-            do {
-                mappedName = newName + id.getAndIncrement();
-            } while (!remapper.map(classNode.name, mappedName));
+            for (Pattern pattern : getDeobfuscator().getConfig().getSkipNormalizeCache()) {
+                Matcher matcher = pattern.matcher(classNode.name);
+                if (matcher.find()) {
+                    return;
+                }
+            }
+
+            if (classNode.name.contains("/")) {
+                int idx = classNode.name.lastIndexOf('/');
+                String packageName = classNode.name.substring(0, idx);
+                String simpleClassName = classNode.name.substring(idx + 1);
+                newName = packageName + "/" + getDeobfuscator().getConfig().getCustomClassName(simpleClassName, "Class_" + simpleClassName);
+            } else {
+                newName = getDeobfuscator().getConfig().getCustomClassName(classNode.name, "Class_" + classNode.name);
+            }
+
+            remapper.map(classNode.name, newName);
         });
     }
 

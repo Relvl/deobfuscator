@@ -16,25 +16,32 @@
 
 package com.javadeobfuscator.deobfuscator.transformers.normalizer;
 
+import com.javadeobfuscator.deobfuscator.Deobfuscator;
 import com.javadeobfuscator.deobfuscator.config.TransformerConfig;
 import com.javadeobfuscator.deobfuscator.utils.ClassTree;
-
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @TransformerConfig.ConfigOptions(configClass = FieldNormalizer.Config.class)
 public class FieldNormalizer extends AbstractNormalizer<FieldNormalizer.Config> {
+    private final Logger logger = LoggerFactory.getLogger(Deobfuscator.class);
 
-	public static boolean EXCLUDE_ENUMS = true;
+    public static boolean EXCLUDE_ENUMS = true;
 
     @Override
     public void remap(CustomRemapper remapper) {
-        AtomicInteger id = new AtomicInteger(0);
+        AtomicInteger id = new AtomicInteger(10000);
+
         //We must load the entire class tree so subclasses are correctly counted
+        System.out.println("FieldNormalizer: start collecting");
         classNodes().forEach(classNode -> {
             ClassTree tree = this.getDeobfuscator().getClassTree(classNode.name);
             Set<String> tried = new HashSet<>();
@@ -49,7 +56,17 @@ public class FieldNormalizer extends AbstractNormalizer<FieldNormalizer.Config> 
                 }
             }
         });
+
+        System.out.println("FieldNormalizer: start remapping");
         classNodes().forEach(classNode -> {
+
+            for (Pattern pattern : getDeobfuscator().getConfig().getSkipNormalizeCache()) {
+                Matcher matcher = pattern.matcher(classNode.name);
+                if (matcher.find()) {
+                    return;
+                }
+            }
+
             ClassTree tree = this.getDeobfuscator().getClassTree(classNode.name);
             Set<String> allClasses = new HashSet<>();
             Set<String> tried = new HashSet<>();
@@ -75,11 +92,13 @@ public class FieldNormalizer extends AbstractNormalizer<FieldNormalizer.Config> 
                     toTryChild.addAll(ct.subClasses);
                 }
             }
+
+            System.out.println("FieldNormalizer: node processing: " + classNode.name);
             for (FieldNode fieldNode : classNode.fields) {
-            	if(EXCLUDE_ENUMS && classNode.superName.equals("java/lang/Enum")
-            		&& Type.getType(fieldNode.desc).getSort() == Type.OBJECT
-            		&& Type.getType(fieldNode.desc).getInternalName().equals(classNode.name))
-            		continue;
+                if (EXCLUDE_ENUMS && classNode.superName.equals("java/lang/Enum")
+                        && Type.getType(fieldNode.desc).getSort() == Type.OBJECT
+                        && Type.getType(fieldNode.desc).getInternalName().equals(classNode.name))
+                    continue;
                 List<String> references = new ArrayList<>();
                 for (String possibleClass : allClasses) {
                     ClassNode otherNode = this.getDeobfuscator().assureLoaded(possibleClass);

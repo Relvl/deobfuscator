@@ -16,12 +16,20 @@
 
 package com.javadeobfuscator.deobfuscator.config;
 
-import com.fasterxml.jackson.annotation.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.*;
-import java.util.*;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 public class Configuration {
+    private final Logger logger = LoggerFactory.getLogger(Configuration.class);
 
     @JsonProperty
     private File input;
@@ -40,6 +48,18 @@ public class Configuration {
 
     @JsonProperty
     private List<String> ignoredClasses;
+
+    @JsonProperty
+    private List<String> includedClasses;
+
+    @JsonProperty
+    private List<String> skipNormalizeClasses;
+
+    @JsonProperty
+    private List<String> skipRenameMethods;
+
+    @JsonProperty
+    private Map<String, String> customClassNames;
 
     @JsonProperty
     private boolean smartRedo;
@@ -77,6 +97,14 @@ public class Configuration {
      */
     @JsonProperty
     private boolean deleteUselessClasses;
+
+    @JsonIgnore
+    private List<Pattern> _includedClassesCache;
+    @JsonIgnore
+    private List<Pattern> _ignoredClassesCache;
+    @JsonIgnore
+    private List<Pattern> _skipNormalize;
+
 
     public File getInput() {
         return input;
@@ -188,5 +216,89 @@ public class Configuration {
 
     public void setDeleteUselessClasses(boolean deleteUselessClasses) {
         this.deleteUselessClasses = deleteUselessClasses;
+    }
+
+    public List<String> getSkipRenameMethods() {
+        return skipRenameMethods;
+    }
+
+    public void setSkipRenameMethods(List<String> skipRenameMethods) {
+        this.skipRenameMethods = skipRenameMethods;
+    }
+
+    public Map<String, String> getCustomClassNames() {
+        return customClassNames;
+    }
+
+    public void setCustomClassNames(Map<String, String> customClassNames) {
+        this.customClassNames = customClassNames;
+    }
+
+    public String getCustomClassName(String name, String defaultName) {
+        if (customClassNames == null) return defaultName;
+        return customClassNames.getOrDefault(name, defaultName);
+    }
+
+    public boolean isMethodShouldSkip(String name) {
+        if (skipRenameMethods == null) return false;
+        for (String skipRenameMethod : skipRenameMethods) {
+            if (name.equalsIgnoreCase(skipRenameMethod)) return true;
+        }
+        return false;
+    }
+
+    public List<Pattern> getIncludedClassesCache() {
+        if (_includedClassesCache == null) {
+            _includedClassesCache = new ArrayList<>();
+            if (includedClasses != null) {
+                for (String includedClass : includedClasses) {
+                    if (includedClass == null || includedClass.isEmpty()) continue;
+                    Pattern pattern;
+                    try {
+                        pattern = Pattern.compile(includedClass);
+                        _includedClassesCache.add(pattern);
+                    } catch (PatternSyntaxException e) {
+                        logger.error("Error while compiling pattern for include statement {}", includedClass, e);
+                    }
+                }
+            }
+        }
+        return _includedClassesCache;
+    }
+
+    public List<Pattern> getIgnoredClassesCache() {
+        if (_ignoredClassesCache == null) {
+            _ignoredClassesCache = new ArrayList<>();
+            if (ignoredClasses != null) {
+                for (String ignoredClass : ignoredClasses) {
+                    Pattern pattern;
+                    try {
+                        pattern = Pattern.compile(ignoredClass);
+                        _ignoredClassesCache.add(pattern);
+                    } catch (PatternSyntaxException e) {
+                        logger.error("Error while compiling pattern for ignore statement {}", ignoredClass, e);
+                    }
+                }
+            }
+        }
+        return _ignoredClassesCache;
+    }
+
+    public List<Pattern> getSkipNormalizeCache() {
+        if (_skipNormalize == null) {
+            _skipNormalize = new ArrayList<>();
+            if (skipNormalizeClasses != null) {
+                for (String ignoredClass : skipNormalizeClasses) {
+                    Pattern pattern;
+                    try {
+                        pattern = Pattern.compile(ignoredClass);
+                        _skipNormalize.add(pattern);
+                    } catch (PatternSyntaxException e) {
+                        logger.error("Error while compiling pattern for ignore statement {}", ignoredClass, e);
+                    }
+                }
+            }
+        }
+        return _skipNormalize;
     }
 }

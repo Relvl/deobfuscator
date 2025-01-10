@@ -20,6 +20,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.javadeobfuscator.deobfuscator.Deobfuscator;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
@@ -31,10 +32,13 @@ import com.javadeobfuscator.deobfuscator.executor.defined.types.JavaClass;
 import com.javadeobfuscator.deobfuscator.executor.defined.types.JavaMethod;
 import com.javadeobfuscator.deobfuscator.executor.providers.DelegatingProvider;
 import com.javadeobfuscator.deobfuscator.utils.ClassTree;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @TransformerConfig.ConfigOptions(configClass = DuplicateRenamer.Config.class)
 public class DuplicateRenamer extends AbstractNormalizer<DuplicateRenamer.Config>
 {
+	private final Logger logger = LoggerFactory.getLogger(Deobfuscator.class);
 	private static final String[] ILLEGAL_WINDOWS_CHARACTERS = {
 		"aux", "con", "prn", "nul",
 		"com0", "com1", "com2", "com3", 
@@ -63,6 +67,7 @@ public class DuplicateRenamer extends AbstractNormalizer<DuplicateRenamer.Config
 	{
 		//We must load the entire class tree so subclasses are correctly counted
         classNodes().forEach(classNode -> {
+			logger.info("DupeReanamer: {}", classNode.name);
             ClassTree tree = this.getDeobfuscator().getClassTree(classNode.name);
             Set<String> tried = new HashSet<>();
             LinkedList<String> toTry = new LinkedList<>();

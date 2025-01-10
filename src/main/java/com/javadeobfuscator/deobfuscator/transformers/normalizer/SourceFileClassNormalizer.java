@@ -26,7 +26,7 @@ public class SourceFileClassNormalizer extends AbstractNormalizer<SourceFileClas
 
     @Override
     public void remap(CustomRemapper remapper) {
-        AtomicInteger counter = new AtomicInteger();
+        AtomicInteger counter = new AtomicInteger(10000);
 
         classNodes().forEach(classNode -> {
             if (classNode.sourceFile == null) {
@@ -36,12 +36,7 @@ public class SourceFileClassNormalizer extends AbstractNormalizer<SourceFileClas
             // todo handle inner classes gracefully (can we give them numerical ids? don't forget about nested inner classes)
             String packageName = classNode.name.contains("/") ? classNode.name.substring(0, classNode.name.lastIndexOf('/')) : "";
 
-            String sourceFileName = classNode.sourceFile;
-            if (classNode.sourceFile.endsWith(".java")) {
-                sourceFileName = sourceFileName.substring(0, sourceFileName.length() - ".java".length());
-            } else if (sourceFileName.endsWith(".kt")) {
-                sourceFileName = sourceFileName.substring(0, sourceFileName.length() - ".kt".length());
-            }
+            String sourceFileName = "Class_" + classNode.name.substring(classNode.name.lastIndexOf('/') + 1);
 
             String innerClasses = "";
             if (classNode.name.contains("$")) {
