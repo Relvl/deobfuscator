@@ -16,6 +16,8 @@
 
 package com.javadeobfuscator.deobfuscator.transformers.normalizer;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.javadeobfuscator.deobfuscator.config.TransformerConfig;
 import com.javadeobfuscator.deobfuscator.utils.ClassTree;
 import org.objectweb.asm.Type;
@@ -27,6 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 @TransformerConfig.ConfigOptions(configClass = MethodNormalizer.Config.class)
 public class MethodNormalizer extends AbstractNormalizer<MethodNormalizer.Config> {
@@ -56,7 +59,7 @@ public class MethodNormalizer extends AbstractNormalizer<MethodNormalizer.Config
         System.out.println("MethodNormalizer: start remapping");
         classNodes().forEach(classNode -> {
 
-            for (Pattern pattern : getDeobfuscator().getConfig().getSkipNormalizeCache()) {
+            for (Pattern pattern : getConfig().skipRename()) {
                 Matcher matcher = pattern.matcher(classNode.name);
                 if (matcher.find()) {
                     return;
@@ -109,7 +112,7 @@ public class MethodNormalizer extends AbstractNormalizer<MethodNormalizer.Config
             for (MethodNode methodNode : new ArrayList<>(classNode.methods)) {
                 if (methodNode.name.startsWith("<")) continue;
                 if (methodNode.name.equals("main")) continue;
-                if (getDeobfuscator().getConfig().isMethodShouldSkip(methodNode.name)) continue;
+                if (getConfig().isMethodShouldSkip(methodNode.name)) continue;
 
                 final Map<Map.Entry<ClassNode, MethodNode>, Boolean> allMethodNodes = new HashMap<>();
                 final Type methodType = Type.getReturnType(methodNode.desc);
@@ -310,8 +313,46 @@ public class MethodNormalizer extends AbstractNormalizer<MethodNormalizer.Config
     }
 
     public static class Config extends AbstractNormalizer.Config {
+        @JsonProperty
+        private List<String> skipRenameInClasses;
+
+        @JsonProperty
+        private List<String> excludeMethodNames;
+
+
+        @JsonIgnore
+        private List<Pattern> _skipNormalize;
+
         public Config() {
             super(MethodNormalizer.class);
         }
+
+        public List<Pattern> skipRename() {
+            if (_skipNormalize == null) {
+                _skipNormalize = new ArrayList<>();
+                if (skipRenameInClasses != null) {
+                    for (String ignoredClass : skipRenameInClasses) {
+                        Pattern pattern;
+                        try {
+                            pattern = Pattern.compile(ignoredClass);
+                            _skipNormalize.add(pattern);
+                        } catch (PatternSyntaxException e) {
+                            System.err.println("Error while compiling pattern for ignore statement " + ignoredClass);
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+            return _skipNormalize;
+        }
+
+        public boolean isMethodShouldSkip(String name) {
+            if (excludeMethodNames == null) return false;
+            for (String skipRenameMethod : excludeMethodNames) {
+                if (name.equalsIgnoreCase(skipRenameMethod)) return true;
+            }
+            return false;
+        }
+
     }
 }

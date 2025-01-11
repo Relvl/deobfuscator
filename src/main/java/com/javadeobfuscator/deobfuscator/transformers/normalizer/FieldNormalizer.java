@@ -16,6 +16,8 @@
 
 package com.javadeobfuscator.deobfuscator.transformers.normalizer;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.javadeobfuscator.deobfuscator.Deobfuscator;
 import com.javadeobfuscator.deobfuscator.config.TransformerConfig;
 import com.javadeobfuscator.deobfuscator.utils.ClassTree;
@@ -29,6 +31,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 @TransformerConfig.ConfigOptions(configClass = FieldNormalizer.Config.class)
 public class FieldNormalizer extends AbstractNormalizer<FieldNormalizer.Config> {
@@ -60,7 +63,7 @@ public class FieldNormalizer extends AbstractNormalizer<FieldNormalizer.Config> 
         System.out.println("FieldNormalizer: start remapping");
         classNodes().forEach(classNode -> {
 
-            for (Pattern pattern : getDeobfuscator().getConfig().getSkipNormalizeCache()) {
+            for (Pattern pattern : getConfig().skipRename()) {
                 Matcher matcher = pattern.matcher(classNode.name);
                 if (matcher.find()) {
                     return;
@@ -128,8 +131,33 @@ public class FieldNormalizer extends AbstractNormalizer<FieldNormalizer.Config> 
     }
 
     public static class Config extends AbstractNormalizer.Config {
+        @JsonProperty
+        private List<String> skipRenameInClasses;
+
+        @JsonIgnore
+        private List<Pattern> _skipNormalize;
+
         public Config() {
             super(FieldNormalizer.class);
+        }
+
+        public List<Pattern> skipRename() {
+            if (_skipNormalize == null) {
+                _skipNormalize = new ArrayList<>();
+                if (skipRenameInClasses != null) {
+                    for (String ignoredClass : skipRenameInClasses) {
+                        Pattern pattern;
+                        try {
+                            pattern = Pattern.compile(ignoredClass);
+                            _skipNormalize.add(pattern);
+                        } catch (PatternSyntaxException e) {
+                            System.err.println("Error while compiling pattern for ignore statement " + ignoredClass);
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+            return _skipNormalize;
         }
     }
 }
